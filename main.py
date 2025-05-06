@@ -1,14 +1,36 @@
-from src.controllers.usuario_controller import UsuarioController
-from src.controllers.vendedor_controller import VendedorController
-from src.controllers.produto_controller import ProdutoController
-from src.controllers.venda_controller import VendaController
+from modules.database.mongo_db import MongoDBConnection
+from modules.database.redis_db import RedisConnection
+from modules.database.controller import DatabaseController
+from modules.users.models import Usuario
+from modules.users.service import UsuarioService
+from modules.users.controller import UsuarioController
+from modules.sellers.service import VendedorService
+from modules.sellers.controller import VendedorController
+from modules.products.service import ProdutoService
+from modules.products.controller import ProdutoController
+from modules.sales.service import PedidoService
+from modules.sales.controller import PedidoController
 
 
 def main():
-    usuario_controller = UsuarioController()
-    vendedor_controller = VendedorController()
-    produto_controller = ProdutoController()
-    venda_controller = VendaController()
+    print("\n=== Sistema Iniciado ===\n")
+
+    mongo_db = MongoDBConnection()
+    redis_db = RedisConnection()
+
+    db_controller = DatabaseController(mongo_db, redis_db)
+
+    usuario_service = UsuarioService()
+    vendedor_service = VendedorService()
+    produto_service = ProdutoService()
+    pedido_service = PedidoService()
+
+    usuario_controller = UsuarioController(usuario_service)
+    vendedor_controller = VendedorController(vendedor_service)
+    produto_controller = ProdutoController(produto_service, vendedor_service)
+    pedido_controller = PedidoController(
+        pedido_service, produto_service, usuario_service
+    )
 
     while True:
         print("\n===== MENU PRINCIPAL =====")
@@ -16,13 +38,16 @@ def main():
         print("2. Gerenciar Vendedores")
         print("3. Gerenciar Produtos")
         print("4. Gerenciar Vendas")
+        print("5. Transferir Dados Mongo <-> Redis")
         print("S. Sair")
+
         opcao = input("\nDigite a opção desejada: ")
 
         if opcao.upper() == "S":
+            print("\nSaindo do sistema...")
             break
 
-        if opcao == "1":
+        elif opcao == "1":
             print("\n===== MENU DE USUÁRIOS =====")
             print("1. Criar Usuário")
             print("2. Buscar Usuários")
@@ -73,6 +98,7 @@ def main():
             print("2. Buscar Produtos")
             print("3. Atualizar Produto")
             print("4. Deletar Produto")
+            print("5. Gerenciar Estoque")
             print("V. Voltar")
             sub_opcao = input("\nDigite a opção desejada: ")
 
@@ -87,13 +113,16 @@ def main():
                 produto_controller.atualizar_produto()
             elif sub_opcao == "4":
                 produto_controller.deletar_produto()
+            elif sub_opcao == "5":
+                produto_controller.gerenciar_estoque()
 
         elif opcao == "4":
             print("\n===== MENU DE VENDAS =====")
-            print("1. Criar Venda")
-            print("2. Buscar Vendas")
-            print("3. Atualizar Status da Venda")
-            print("4. Cancelar/Deletar Venda")
+            print("1. Criar Pedido")
+            print("2. Listar Pedidos")
+            print("3. Atualizar Status do Pedido")
+            print("4. Registrar Pagamento")
+            print("5. Cancelar Pedido")
             print("V. Voltar")
             sub_opcao = input("\nDigite a opção desejada: ")
 
@@ -101,15 +130,33 @@ def main():
                 continue
 
             if sub_opcao == "1":
-                venda_controller.criar_venda()
+                pedido_controller.criar_pedido()
             elif sub_opcao == "2":
-                venda_controller.ler_venda()
+                pedido_controller.listar_pedidos()
             elif sub_opcao == "3":
-                venda_controller.atualizar_venda()
+                pedido_controller.atualizar_status()
             elif sub_opcao == "4":
-                venda_controller.deletar_venda()
+                pedido_controller.registrar_pagamento()
+            elif sub_opcao == "5":
+                pedido_controller.cancelar_pedido()
 
-    print("Sistema finalizado. Até mais!")
+        elif opcao == "5":
+            print("\n===== TRANSFERIR DADOS =====")
+            print("1. MongoDB -> Redis")
+            print("2. Redis -> MongoDB")
+            print("V. Voltar")
+            sub_opcao = input("\nDigite a opção desejada: ")
+
+            if sub_opcao.upper() == "V":
+                continue
+
+            if sub_opcao == "1":
+                db_controller.mongo_to_redis()
+            elif sub_opcao == "2":
+                db_controller.redis_to_mongo()
+
+        else:
+            print("Opção inválida!")
 
 
 if __name__ == "__main__":
