@@ -5,6 +5,7 @@ from modules.sales.models import Pedido, ItemPedido, Pagamento, StatusPedido
 from modules.sales.repository import PedidoRepository
 from modules.products.service import ProdutoService
 from modules.users.service import UsuarioService
+from datetime import datetime
 
 
 class PedidoService:
@@ -91,9 +92,12 @@ class PedidoService:
         if not pedido:
             raise ValueError(f"Pedido não encontrado: {pedido_id}")
 
-        if pedido.status != StatusPedido.AGUARDANDO_PAGAMENTO:
+        if (
+            pedido.status != StatusPedido.AGUARDANDO_PAGAMENTO
+            and pedido.status != StatusPedido.PENDENTE
+        ):
             raise ValueError(
-                f"Pedido não está aguardando pagamento. Status atual: {pedido.status.value}"
+                f"Pedido não está em um status que permite pagamento. Status atual: {pedido.status.value}"
             )
 
         if valor < pedido.total:
@@ -124,8 +128,7 @@ class PedidoService:
                 f"Pedido não pode ser cancelado. Status atual: {pedido.status.value}"
             )
 
-        return self.repository.update_status(pedido_id, StatusPedido.CANCELADO)
+        return self.repository.delete(pedido_id)
 
-    def buscar_todos_pedidos(self):
-        documentos = self.repository.find_all()
-        return documentos
+    def buscar_todos_pedidos(self) -> List[Pedido]:
+        return self.repository.find_all()

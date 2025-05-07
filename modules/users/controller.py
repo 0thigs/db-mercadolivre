@@ -127,27 +127,88 @@ class UsuarioController:
             return False
 
         if opcao == "1":
-            produto_id = input("ID do produto a adicionar: ")
-            sucesso = self.usuario_service.adicionar_favorito(usuario_id, produto_id)
-            if sucesso:
-                print("Produto adicionado aos favoritos com sucesso!")
-            else:
-                print("Erro ao adicionar produto aos favoritos.")
+            from modules.products.service import ProdutoService
+
+            produto_service = ProdutoService()
+            produtos = produto_service.listar_todos_produtos()
+
+            if not produtos:
+                print("Nenhum produto cadastrado.")
+                return False
+
+            print("\nProdutos disponíveis:")
+            for i, produto in enumerate(produtos, 1):
+                print(f"{i}. {produto.nome} - R$ {produto.preco:.2f}")
+
+            try:
+                indice = int(input("\nDigite o número do produto: "))
+                if 1 <= indice <= len(produtos):
+                    produto_id = str(produtos[indice - 1].id)
+                    sucesso = self.usuario_service.adicionar_favorito(
+                        usuario_id, produto_id
+                    )
+                    if sucesso:
+                        print("Produto adicionado aos favoritos com sucesso!")
+                    else:
+                        print("Erro ao adicionar produto aos favoritos.")
+                else:
+                    print("Índice inválido!")
+            except ValueError:
+                print("Digite um número válido!")
 
         elif opcao == "2":
-            produto_id = input("ID do produto a remover: ")
-            sucesso = self.usuario_service.remover_favorito(usuario_id, produto_id)
-            if sucesso:
-                print("Produto removido dos favoritos com sucesso!")
-            else:
-                print("Erro ao remover produto dos favoritos.")
+            favoritos = self.usuario_service.listar_favoritos(usuario_id)
+
+            if not favoritos:
+                print("Nenhum produto favorito encontrado.")
+                return False
+
+            print("\nFavoritos disponíveis:")
+            from modules.products.service import ProdutoService
+
+            produto_service = ProdutoService()
+
+            for i, produto_id in enumerate(favoritos, 1):
+                produto = produto_service.buscar_produto_por_id(str(produto_id))
+                if produto:
+                    print(
+                        f"{i}. {produto.nome} - R$ {produto.preco:.2f} - ID: {produto_id}"
+                    )
+                else:
+                    print(f"{i}. ID: {produto_id} (Produto não encontrado)")
+
+            try:
+                indice = int(input("\nDigite o número do favorito a remover: "))
+                if 1 <= indice <= len(favoritos):
+                    produto_id = str(favoritos[indice - 1])
+                    sucesso = self.usuario_service.remover_favorito(
+                        usuario_id, produto_id
+                    )
+                    if sucesso:
+                        print("Produto removido dos favoritos com sucesso!")
+                    else:
+                        print("Erro ao remover produto dos favoritos.")
+                else:
+                    print("Índice inválido!")
+            except ValueError:
+                print("Digite um número válido!")
 
         elif opcao == "3":
             favoritos = self.usuario_service.listar_favoritos(usuario_id)
             if favoritos:
                 print("\nProdutos favoritos:")
+                from modules.products.service import ProdutoService
+
+                produto_service = ProdutoService()
+
                 for i, produto_id in enumerate(favoritos, 1):
-                    print(f"{i}. ID: {produto_id}")
+                    produto = produto_service.buscar_produto_por_id(str(produto_id))
+                    if produto:
+                        print(
+                            f"{i}. {produto.nome} - R$ {produto.preco:.2f} - ID: {produto_id}"
+                        )
+                    else:
+                        print(f"{i}. ID: {produto_id} (Produto não encontrado)")
             else:
                 print("Nenhum produto favorito encontrado.")
 

@@ -199,9 +199,15 @@ class MongoRedisController:
                     print(f"Primeiro documento: {primeiro}")
                 return
 
+            existing_redis_keys = self.redis.keys("usuario:*")
+            existing_redis_ids = {chave.split(":")[-1] for chave in existing_redis_keys}
+
+            mongo_ids = set()
+
             contador = 0
             for usuario in usuarios:
                 usuario_id = str(usuario["_id"])
+                mongo_ids.add(usuario_id)
                 print(f"Processando usuário: {usuario_id}")
 
                 chave_redis = f"usuario:{usuario_id}"
@@ -225,7 +231,17 @@ class MongoRedisController:
 
                 contador += 1
 
+            redis_ids_to_remove = existing_redis_ids - mongo_ids
+            for redis_id in redis_ids_to_remove:
+                print(
+                    f"Removendo usuário do Redis que não existe mais no MongoDB: {redis_id}"
+                )
+                self.redis.delete(f"usuario:{redis_id}")
+
             print(f"Dados transferidos com sucesso! {contador} usuários processados.")
+            print(
+                f"{len(redis_ids_to_remove)} usuários removidos do Redis por não existirem mais no MongoDB."
+            )
 
             chaves = self.redis.keys("usuario:*")
             if chaves:
@@ -311,7 +327,7 @@ class MongoRedisController:
                 "\nDigite os novos dados (deixe em branco para manter o valor atual):"
             )
 
-            campos = ["nome", "email", "cpf", "telefone", "endereco"]
+            campos = ["nome", "sobrenome", "cpf"]
 
             novos_dados = {}
             for campo in campos:
@@ -320,6 +336,54 @@ class MongoRedisController:
 
                 if novo_valor:
                     novos_dados[campo] = novo_valor
+
+            print("\nEndereço atual:")
+            endereco_atual = {}
+            try:
+                import json
+
+                if "enderecos" in dados_atuais:
+                    enderecos = json.loads(dados_atuais.get("enderecos", "[]"))
+                    if enderecos and len(enderecos) > 0:
+                        endereco_atual = enderecos[0]
+                        for campo, valor in endereco_atual.items():
+                            print(f"{campo}: {valor}")
+            except:
+                print("Não foi possível ler o endereço atual.")
+
+            print(
+                "\nDigite os novos dados de endereço (deixe em branco para manter o valor atual):"
+            )
+
+            campos_endereco = ["rua", "num", "bairro", "cidade", "estado", "cep"]
+            novo_endereco = {}
+
+            for campo in campos_endereco:
+                valor_atual = endereco_atual.get(campo, "")
+                novo_valor = input(f"{campo} [{valor_atual}]: ")
+
+                if novo_valor:
+                    novo_endereco[campo] = novo_valor
+                elif valor_atual:
+                    novo_endereco[campo] = valor_atual
+
+            if novo_endereco:
+                import json
+
+                enderecos = []
+                try:
+                    if "enderecos" in dados_atuais:
+                        enderecos = json.loads(dados_atuais.get("enderecos", "[]"))
+                        if len(enderecos) > 0:
+                            enderecos[0] = novo_endereco
+                        else:
+                            enderecos.append(novo_endereco)
+                    else:
+                        enderecos.append(novo_endereco)
+                except:
+                    enderecos = [novo_endereco]
+
+                novos_dados["enderecos"] = json.dumps(enderecos)
 
             if novos_dados:
                 for campo, valor in novos_dados.items():
@@ -409,9 +473,16 @@ class MongoRedisController:
                     print(f"Primeiro documento: {primeiro}")
                 return
 
+            # Get existing Redis keys for products
+            existing_redis_keys = self.redis.keys("produto:*")
+            existing_redis_ids = {chave.split(":")[-1] for chave in existing_redis_keys}
+
+            mongo_ids = set()
+
             contador = 0
             for produto in produtos:
                 produto_id = str(produto["_id"])
+                mongo_ids.add(produto_id)
                 print(f"Processando produto: {produto_id}")
 
                 chave_redis = f"produto:{produto_id}"
@@ -433,7 +504,17 @@ class MongoRedisController:
 
                 contador += 1
 
+            redis_ids_to_remove = existing_redis_ids - mongo_ids
+            for redis_id in redis_ids_to_remove:
+                print(
+                    f"Removendo produto do Redis que não existe mais no MongoDB: {redis_id}"
+                )
+                self.redis.delete(f"produto:{redis_id}")
+
             print(f"Dados transferidos com sucesso! {contador} produtos processados.")
+            print(
+                f"{len(redis_ids_to_remove)} produtos removidos do Redis por não existirem mais no MongoDB."
+            )
 
             chaves = self.redis.keys("produto:*")
             if chaves:
@@ -523,15 +604,30 @@ class MongoRedisController:
                 "\nDigite os novos dados (deixe em branco para manter o valor atual):"
             )
 
-            campos = ["nome", "descricao", "preco", "estoque"]
+            campos = ["nome", "descricao", "preco", "estoque", "vendedor_id", "ativo"]
 
             novos_dados = {}
             for campo in campos:
                 valor_atual = dados_atuais.get(campo, "")
-                novo_valor = input(f"{campo} [{valor_atual}]: ")
 
-                if novo_valor:
-                    novos_dados[campo] = novo_valor
+                if campo == "ativo":
+                    print(f"\n{campo} [{valor_atual}] (Digite 'true' ou 'false'): ")
+                    novo_valor = input()
+                    if novo_valor.lower() in ["true", "false"]:
+                        novos_dados[campo] = novo_valor.lower()
+                elif campo in ["preco", "estoque"]:
+                    try:
+                        novo_valor = input(f"{campo} [{valor_atual}]: ")
+                        if novo_valor:
+                            # Validar se é um número
+                            float(novo_valor) if campo == "preco" else int(novo_valor)
+                            novos_dados[campo] = novo_valor
+                    except ValueError:
+                        print(f"Valor inválido para {campo}. Mantendo valor atual.")
+                else:
+                    novo_valor = input(f"{campo} [{valor_atual}]: ")
+                    if novo_valor:
+                        novos_dados[campo] = novo_valor
 
             if novos_dados:
                 for campo, valor in novos_dados.items():

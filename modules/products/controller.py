@@ -13,70 +13,52 @@ class ProdutoController:
 
     def criar_produto(self):
         print("\n===== CRIAR PRODUTO =====")
-
-        vendedor_id = self._selecionar_vendedor()
-        if not vendedor_id:
-            return None
-
-        nome = input("Nome do produto: ")
+        nome = input("Nome: ")
         descricao = input("Descrição: ")
 
         preco_valido = False
         while not preco_valido:
             try:
-                preco_str = input("Preço (ex: 99.90): ")
-                preco = Decimal(preco_str)
+                preco_str = input("Preço: ")
+                preco = float(preco_str)
+                if preco <= 0:
+                    print("O preço deve ser maior que zero.")
+                    continue
                 preco_valido = True
             except:
-                print("Preço inválido! Use o formato: 99.90")
+                print("Preço inválido! Digite um número.")
 
         estoque_valido = False
         while not estoque_valido:
             try:
-                estoque_str = input("Quantidade em estoque: ")
+                estoque_str = input("Estoque: ")
                 estoque = int(estoque_str)
+                if estoque < 0:
+                    print("O estoque não pode ser negativo.")
+                    continue
                 estoque_valido = True
             except:
                 print("Estoque inválido! Digite um número inteiro.")
 
-        categorias = []
-        while True:
-            categoria = input("Categoria (deixe em branco para finalizar): ")
-            if not categoria:
-                break
-            categorias.append(categoria)
-
-        especificacoes = {}
-        print("\nEspecificações do produto (deixe em branco para finalizar)")
-        while True:
-            chave = input("Característica: ")
-            if not chave:
-                break
-            valor = input(f"Valor para {chave}: ")
-            especificacoes[chave] = valor
-
-        imagens = []
-        print("\nImagens do produto (deixe em branco para finalizar)")
-        while True:
-            url = input("URL da imagem: ")
-            if not url:
-                break
-            imagens.append(url)
+        vendedor_id = self._selecionar_vendedor()
+        if not vendedor_id:
+            return False
 
         produto = Produto(
             nome=nome,
             descricao=descricao,
             preco=preco,
             estoque=estoque,
-            categorias=categorias,
             vendedor_id=ObjectId(vendedor_id),
-            imagens=imagens,
-            especificacoes=especificacoes,
         )
 
         produto_id = self.produto_service.criar_produto(produto)
-        print(f"Produto criado com ID: {produto_id}")
-        return produto_id
+        if produto_id:
+            print(f"Produto criado com ID: {produto_id}")
+            return produto_id
+        else:
+            print("Erro ao criar produto.")
+            return False
 
     def ler_produto(self):
         print("\n===== BUSCAR PRODUTO =====")
@@ -114,57 +96,41 @@ class ProdutoController:
         nome = input(f"Nome [{produto.nome}]: ") or produto.nome
         descricao = input(f"Descrição [{produto.descricao}]: ") or produto.descricao
 
-        preco = produto.preco
-        preco_str = input(f"Preço [{produto.preco}]: ")
-        if preco_str:
+        preco_valido = False
+        while not preco_valido:
             try:
-                preco = Decimal(preco_str)
+                preco_str = input(f"Preço [{produto.preco}]: ") or str(produto.preco)
+                preco = float(preco_str)
+                if preco <= 0:
+                    print("O preço deve ser maior que zero.")
+                    continue
+                preco_valido = True
             except:
-                print("Preço inválido! Mantendo o valor atual.")
+                print("Preço inválido! Digite um número.")
 
-        estoque = produto.estoque
-        estoque_str = input(f"Estoque [{produto.estoque}]: ")
-        if estoque_str:
+        estoque_valido = False
+        while not estoque_valido:
             try:
+                estoque_str = input(f"Estoque [{produto.estoque}]: ") or str(
+                    produto.estoque
+                )
                 estoque = int(estoque_str)
+                if estoque < 0:
+                    print("O estoque não pode ser negativo.")
+                    continue
+                estoque_valido = True
             except:
-                print("Estoque inválido! Mantendo o valor atual.")
+                print("Estoque inválido! Digite um número inteiro.")
 
-        print("\nDeseja atualizar as categorias? (S/N)")
-        if input().upper() == "S":
-            categorias = []
-            print("Digite as novas categorias (deixe em branco para finalizar):")
-            while True:
-                categoria = input("Categoria: ")
-                if not categoria:
-                    break
-                categorias.append(categoria)
-        else:
-            categorias = produto.categorias
+        produto_atualizado = Produto(
+            nome=nome,
+            descricao=descricao,
+            preco=preco,
+            estoque=estoque,
+            vendedor_id=produto.vendedor_id,
+        )
 
-        print("\nDeseja atualizar as especificações? (S/N)")
-        if input().upper() == "S":
-            especificacoes = {}
-            print("Digite as novas especificações (deixe em branco para finalizar):")
-            while True:
-                chave = input("Característica: ")
-                if not chave:
-                    break
-                valor = input(f"Valor para {chave}: ")
-                especificacoes[chave] = valor
-        else:
-            especificacoes = produto.especificacoes
-
-        dados = {
-            "nome": nome,
-            "descricao": descricao,
-            "preco": preco,
-            "estoque": estoque,
-            "categorias": categorias,
-            "especificacoes": especificacoes,
-        }
-
-        sucesso = self.produto_service.atualizar_produto(produto_id, dados)
+        sucesso = self.produto_service.atualizar_produto(produto_id, produto_atualizado)
         if sucesso:
             print("Produto atualizado com sucesso!")
         else:
@@ -193,7 +159,7 @@ class ProdutoController:
 
         sucesso = self.produto_service.deletar_produto(produto_id)
         if sucesso:
-            print("Produto marcado como inativo com sucesso!")
+            print("Produto deletado com sucesso!")
         else:
             print("Erro ao deletar produto.")
 
@@ -253,76 +219,6 @@ class ProdutoController:
                 print(f"Estoque atualizado: -{quantidade} unidades")
             else:
                 print("Erro ao atualizar estoque.")
-
-        return True
-
-    def gerenciar_avaliacoes(self):
-        print("\n===== AVALIAR PRODUTO =====")
-        produto_id = input("ID do produto: ")
-
-        produto = self.produto_service.buscar_produto_por_id(produto_id)
-        if not produto:
-            print("Produto não encontrado.")
-            return False
-
-        print(f"\nProduto: {produto.nome}")
-
-        print("\n1. Adicionar avaliação")
-        print("2. Ver avaliações")
-        print("V. Voltar")
-
-        opcao = input("\nDigite a opção desejada: ")
-
-        if opcao.upper() == "V":
-            return False
-
-        if opcao == "1":
-            usuario_id = input("ID do usuário avaliador: ")
-            try:
-                usuario_id_obj = ObjectId(usuario_id)
-            except:
-                print("ID de usuário inválido.")
-                return False
-
-            nota_valida = False
-            while not nota_valida:
-                try:
-                    nota_str = input("Nota (1 a 5): ")
-                    nota = int(nota_str)
-                    if nota < 1 or nota > 5:
-                        print("A nota deve ser entre 1 e 5.")
-                        continue
-                    nota_valida = True
-                except:
-                    print("Nota inválida! Digite um número de 1 a 5.")
-
-            comentario = input("Comentário: ")
-
-            try:
-                self.produto_service.adicionar_avaliacao(
-                    produto_id=ObjectId(produto_id),
-                    usuario_id=usuario_id_obj,
-                    nota=nota,
-                    comentario=comentario,
-                )
-                print("Avaliação adicionada com sucesso!")
-            except Exception as e:
-                print(f"Erro ao adicionar avaliação: {str(e)}")
-
-        elif opcao == "2":
-            avaliacoes = self.produto_service.buscar_avaliacoes(produto_id)
-            if avaliacoes:
-                print(
-                    f"\nAvaliações do produto (média: {produto.avaliacao_media:.1f}/5):"
-                )
-                for i, avaliacao in enumerate(avaliacoes, 1):
-                    print(f"\n--- Avaliação {i} ---")
-                    print(f"Usuário: {avaliacao.usuario_id}")
-                    print(f"Nota: {avaliacao.nota}/5")
-                    print(f"Data: {avaliacao.data}")
-                    print(f"Comentário: {avaliacao.comentario}")
-            else:
-                print("Nenhuma avaliação encontrada para este produto.")
 
         return True
 
@@ -398,29 +294,13 @@ class ProdutoController:
         print(f"Nome: {produto.nome}")
         print(f"Descrição: {produto.descricao}")
         print(f"Preço: R$ {produto.preco:.2f}")
-        print(f"Estoque: {produto.estoque} unidades")
-        print(f"Categorias: {', '.join(produto.categorias)}")
-
-        if produto.especificacoes:
-            print("Especificações:")
-            for chave, valor in produto.especificacoes.items():
-                print(f"  {chave}: {valor}")
-
-        if produto.imagens:
-            print("Imagens:")
-            for url in produto.imagens:
-                print(f"  {url}")
-
-        try:
+        print(f"Estoque: {produto.estoque}")
+        if produto.vendedor_id:
             vendedor = self.vendedor_service.buscar_vendedor_por_id(
                 str(produto.vendedor_id)
             )
             if vendedor:
                 print(f"Vendedor: {vendedor.nome} {vendedor.sobrenome}")
-            else:
-                print(f"Vendedor ID: {produto.vendedor_id}")
-        except:
-            print(f"Vendedor ID: {produto.vendedor_id}")
 
     def _exibir_lista_produtos(self, produtos):
         if produtos:

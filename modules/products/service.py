@@ -27,7 +27,15 @@ class ProdutoService:
     def listar_todos_produtos(self) -> List[Produto]:
         return self.repository.find_all()
 
-    def atualizar_produto(self, produto_id: str, dados: dict) -> bool:
+    def atualizar_produto(self, produto_id: str, produto: Produto) -> bool:
+        dados = {
+            "nome": produto.nome,
+            "descricao": produto.descricao,
+            "preco": produto.preco,
+            "estoque": produto.estoque,
+            "vendedor_id": produto.vendedor_id,
+            "ativo": produto.ativo,
+        }
         return self.repository.update(produto_id, dados)
 
     def deletar_produto(self, produto_id: str) -> bool:

@@ -94,62 +94,12 @@ class PedidoController:
         else:
             print("Nenhum pedido cadastrado.")
 
-    def atualizar_status(self):
-        print("\n===== ATUALIZAR STATUS DO PEDIDO =====")
-        pedido_id = input("ID do pedido: ")
-
-        pedido = self.pedido_service.buscar_pedido_por_id(pedido_id)
-        if not pedido:
-            print("Pedido não encontrado.")
-            return False
-
-        print("\nPedido encontrado:")
-        self._exibir_pedido(pedido)
-
-        print("\nSelecione o novo status:")
-        opcoes_validas = []
-
-        if pedido.status == StatusPedido.AGUARDANDO_PAGAMENTO:
-            opcoes_validas = [StatusPedido.CANCELADO]
-        elif pedido.status == StatusPedido.PAGAMENTO_APROVADO:
-            opcoes_validas = [StatusPedido.EM_SEPARACAO, StatusPedido.CANCELADO]
-        elif pedido.status == StatusPedido.EM_SEPARACAO:
-            opcoes_validas = [StatusPedido.ENVIADO, StatusPedido.CANCELADO]
-        elif pedido.status == StatusPedido.ENVIADO:
-            opcoes_validas = [StatusPedido.ENTREGUE]
-        else:
-            print(
-                f"Não é possível alterar o status deste pedido. Status atual: {pedido.status.value}"
-            )
-            return False
-
-        for i, status in enumerate(opcoes_validas, 1):
-            print(f"{i}. {status.value}")
-
-        try:
-            status_opcao = int(input("\nOpção: "))
-            if 1 <= status_opcao <= len(opcoes_validas):
-                novo_status = opcoes_validas[status_opcao - 1]
-
-                sucesso = self.pedido_service.atualizar_status_pedido(
-                    pedido_id, novo_status
-                )
-                if sucesso:
-                    print(f"Status atualizado para: {novo_status.value}")
-                    return True
-                else:
-                    print("Erro ao atualizar status.")
-                    return False
-            else:
-                print("Opção inválida.")
-                return False
-        except:
-            print("Entrada inválida.")
-            return False
-
     def registrar_pagamento(self):
         print("\n===== REGISTRAR PAGAMENTO =====")
-        pedido_id = input("ID do pedido: ")
+
+        pedido_id = self._selecionar_pedido()
+        if not pedido_id:
+            return False
 
         return self._registrar_pagamento(pedido_id)
 
@@ -159,54 +109,32 @@ class PedidoController:
             print("Pedido não encontrado.")
             return False
 
-        if pedido.status != StatusPedido.AGUARDANDO_PAGAMENTO:
+        if (
+            pedido.status != StatusPedido.AGUARDANDO_PAGAMENTO
+            and pedido.status != StatusPedido.PENDENTE
+        ):
             print(
-                f"Pedido não está aguardando pagamento. Status atual: {pedido.status.value}"
+                f"Pedido não está em um status que permite pagamento. Status atual: {pedido.status.value}"
             )
             return False
 
         print(f"\nValor total do pedido: R$ {pedido.total:.2f}")
+        confirmar = input("\nConfirmar pagamento? (S/N): ")
 
-        print("\nSelecione o método de pagamento:")
-        print("1. Cartão de Crédito")
-        print("2. Boleto Bancário")
-        print("3. Pix")
-        print("V. Voltar")
-
-        opcao = input("\nOpção: ")
-
-        if opcao.upper() == "V":
+        if confirmar.upper() != "S":
+            print("Pagamento cancelado.")
             return False
-
-        metodos = {"1": "cartao", "2": "boleto", "3": "pix"}
-
-        if opcao not in metodos:
-            print("Opção inválida.")
-            return False
-
-        metodo = metodos[opcao]
-
-        detalhes = {}
-
-        if metodo == "cartao":
-            detalhes["numero"] = input("Número do cartão (4 últimos dígitos): ")
-            detalhes["bandeira"] = input("Bandeira: ")
-            detalhes["parcelas"] = input("Número de parcelas: ")
-        elif metodo == "boleto":
-            detalhes["codigo"] = input("Código do boleto: ")
-        elif metodo == "pix":
-            detalhes["chave"] = input("Chave PIX: ")
 
         try:
             sucesso = self.pedido_service.registrar_pagamento(
                 pedido_id=pedido_id,
-                metodo=metodo,
+                metodo="sistema",
                 valor=pedido.total,
-                detalhes=detalhes,
+                detalhes={"observacao": "Pagamento simplificado"},
             )
 
             if sucesso:
-                print("Pagamento registrado com sucesso!")
+                print("Pagamento confirmado com sucesso!")
                 return True
             else:
                 print("Erro ao registrar pagamento.")
@@ -217,7 +145,10 @@ class PedidoController:
 
     def cancelar_pedido(self):
         print("\n===== CANCELAR PEDIDO =====")
-        pedido_id = input("ID do pedido: ")
+
+        pedido_id = self._selecionar_pedido()
+        if not pedido_id:
+            return False
 
         pedido = self.pedido_service.buscar_pedido_por_id(pedido_id)
         if not pedido:
@@ -237,7 +168,9 @@ class PedidoController:
             )
             return False
 
-        confirmacao = input("\nTem certeza que deseja cancelar este pedido? (S/N): ")
+        confirmacao = input(
+            "\nTem certeza que deseja excluir permanentemente este pedido? (S/N): "
+        )
         if confirmacao.upper() != "S":
             print("Operação cancelada.")
             return False
@@ -245,10 +178,10 @@ class PedidoController:
         try:
             sucesso = self.pedido_service.cancelar_pedido(pedido_id)
             if sucesso:
-                print("Pedido cancelado com sucesso!")
+                print("Pedido excluído com sucesso!")
                 return True
             else:
-                print("Erro ao cancelar pedido.")
+                print("Erro ao excluir pedido.")
                 return False
         except Exception as e:
             print(f"Erro: {str(e)}")

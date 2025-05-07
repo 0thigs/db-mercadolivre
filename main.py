@@ -148,9 +148,8 @@ def menu_mongodb(
             print("\n===== MENU DE VENDAS =====")
             print("1. Criar Pedido")
             print("2. Listar Pedidos")
-            print("3. Atualizar Status do Pedido")
-            print("4. Registrar Pagamento")
-            print("5. Cancelar Pedido")
+            print("3. Registrar Pagamento")
+            print("4. Cancelar Pedido")
             print("V. Voltar")
             sub_opcao = input("\nDigite a opção desejada: ")
 
@@ -162,10 +161,8 @@ def menu_mongodb(
             elif sub_opcao == "2":
                 pedido_controller.listar_pedidos()
             elif sub_opcao == "3":
-                pedido_controller.atualizar_status()
-            elif sub_opcao == "4":
                 pedido_controller.registrar_pagamento()
-            elif sub_opcao == "5":
+            elif sub_opcao == "4":
                 pedido_controller.cancelar_pedido()
 
 

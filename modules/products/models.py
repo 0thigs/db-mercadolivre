@@ -10,10 +10,7 @@ class Produto:
     descricao: str
     preco: Decimal
     estoque: int
-    categorias: List[str]
     vendedor_id: ObjectId
-    imagens: List[str] = field(default_factory=list)
-    especificacoes: Dict[str, str] = field(default_factory=dict)
     ativo: bool = True
     id: Optional[ObjectId] = None
 

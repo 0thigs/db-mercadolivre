@@ -16,10 +16,7 @@ class ProdutoRepository:
             "descricao": produto.descricao,
             "preco": float(produto.preco),
             "estoque": produto.estoque,
-            "categorias": produto.categorias,
             "vendedor_id": produto.vendedor_id,
-            "imagens": produto.imagens,
-            "especificacoes": produto.especificacoes,
             "ativo": produto.ativo,
         }
         result = self.collection.insert_one(documento)
@@ -33,10 +30,6 @@ class ProdutoRepository:
 
     def find_by_nome(self, nome: str) -> List[Produto]:
         documentos = self.collection.find({"nome": {"$regex": nome, "$options": "i"}})
-        return [self._documento_to_entity(doc) for doc in documentos]
-
-    def find_by_categoria(self, categoria: str) -> List[Produto]:
-        documentos = self.collection.find({"categorias": categoria})
         return [self._documento_to_entity(doc) for doc in documentos]
 
     def find_by_vendedor(self, vendedor_id: str) -> List[Produto]:
@@ -67,10 +60,8 @@ class ProdutoRepository:
         return result.modified_count > 0
 
     def delete(self, produto_id: str) -> bool:
-        result = self.collection.update_one(
-            {"_id": ObjectId(produto_id)}, {"$set": {"ativo": False}}
-        )
-        return result.modified_count > 0
+        result = self.collection.delete_one({"_id": ObjectId(produto_id)})
+        return result.deleted_count > 0
 
     def atualizar_estoque(self, produto_id: str, quantidade: int) -> bool:
         result = self.collection.update_one(
@@ -100,20 +91,13 @@ class ProdutoRepository:
             elif "estoque" in documento:
                 estoque = documento["estoque"]
 
-            categorias = documento.get("categorias", [])
-            if not isinstance(categorias, list):
-                categorias = []
-
             return Produto(
                 id=documento["_id"],
                 nome=documento["nome"],
                 descricao=documento["descricao"],
                 preco=Decimal(str(documento["preco"])),
                 estoque=estoque,
-                categorias=categorias,
                 vendedor_id=vendedor_id,
-                imagens=documento.get("imagens", []),
-                especificacoes=documento.get("especificacoes", {}),
                 ativo=documento.get("ativo", True),
             )
         except Exception as e:
