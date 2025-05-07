@@ -19,4 +19,4 @@ class MongoDBConnection:
 
     @classmethod
     def get_collection(cls, collection_name: str):
-        return cls.get_database()[collection_name] 
+        return cls.get_database()[collection_name]

@@ -1,6 +1,6 @@
 from modules.database.mongo_db import MongoDBConnection
 from modules.database.redis_db import RedisConnection
-from modules.database.controller import DatabaseController
+from modules.database.controller import MongoRedisController
 from modules.users.models import Usuario
 from modules.users.service import UsuarioService
 from modules.users.controller import UsuarioController
@@ -16,9 +16,9 @@ def main():
     print("\n=== Sistema Iniciado ===\n")
 
     mongo_db = MongoDBConnection()
-    redis_db = RedisConnection()
+    RedisConnection.get_client()
 
-    db_controller = DatabaseController(mongo_db, redis_db)
+    db_controller = MongoRedisController()
 
     usuario_service = UsuarioService()
     vendedor_service = VendedorService()
@@ -34,17 +34,45 @@ def main():
 
     while True:
         print("\n===== MENU PRINCIPAL =====")
-        print("1. Gerenciar Usuários")
-        print("2. Gerenciar Vendedores")
-        print("3. Gerenciar Produtos")
-        print("4. Gerenciar Vendas")
-        print("5. Transferir Dados Mongo <-> Redis")
+        print("1. MongoDB - Sistema de Vendas")
+        print("2. Redis - Sistema de Cache")
         print("S. Sair")
 
         opcao = input("\nDigite a opção desejada: ")
 
         if opcao.upper() == "S":
             print("\nSaindo do sistema...")
+            break
+
+        elif opcao == "1":
+            menu_mongodb(
+                usuario_controller,
+                vendedor_controller,
+                produto_controller,
+                pedido_controller,
+            )
+
+        elif opcao == "2":
+            db_controller.redis_main_menu()
+
+        else:
+            print("Opção inválida!")
+
+
+def menu_mongodb(
+    usuario_controller, vendedor_controller, produto_controller, pedido_controller
+):
+    while True:
+        print("\n===== MENU MONGODB =====")
+        print("1. Gerenciar Usuários")
+        print("2. Gerenciar Vendedores")
+        print("3. Gerenciar Produtos")
+        print("4. Gerenciar Vendas")
+        print("V. Voltar")
+
+        opcao = input("\nDigite a opção desejada: ")
+
+        if opcao.upper() == "V":
             break
 
         elif opcao == "1":
@@ -139,24 +167,6 @@ def main():
                 pedido_controller.registrar_pagamento()
             elif sub_opcao == "5":
                 pedido_controller.cancelar_pedido()
-
-        elif opcao == "5":
-            print("\n===== TRANSFERIR DADOS =====")
-            print("1. MongoDB -> Redis")
-            print("2. Redis -> MongoDB")
-            print("V. Voltar")
-            sub_opcao = input("\nDigite a opção desejada: ")
-
-            if sub_opcao.upper() == "V":
-                continue
-
-            if sub_opcao == "1":
-                db_controller.mongo_to_redis()
-            elif sub_opcao == "2":
-                db_controller.redis_to_mongo()
-
-        else:
-            print("Opção inválida!")
 
 
 if __name__ == "__main__":
